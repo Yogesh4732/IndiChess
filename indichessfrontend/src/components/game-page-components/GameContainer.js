@@ -183,6 +183,68 @@ const GameContainer = ({ matchId, stompClient, isConnected, playerColor, initial
     };
   }, [isRapid, isConnected, isMyTurn, playerColor, hasGameStarted]);
 
+  // Load existing move history from backend when game loads
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/games/${matchId}/moves`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          console.error('Failed to fetch move history', response.status);
+          return;
+        }
+        const history = await response.json(); // Array of MoveHistoryDTO
+
+        const groupedMoves = [];
+        history.forEach((m) => {
+          const isWhite = m.color === 'WHITE';
+          const san = m.san || '';
+
+          if (isWhite) {
+            // Start a new move pair for white
+            groupedMoves.push({
+              moveToWhite: san,
+              moveToBlack: '',
+              fen: m.fenAfter,
+              tc: '',
+              tr: '',
+            });
+          } else {
+            // Attach black move to last entry, or create a new one if needed
+            if (groupedMoves.length === 0) {
+              groupedMoves.push({
+                moveToWhite: '',
+                moveToBlack: san,
+                fen: m.fenAfter,
+                tc: '',
+                tr: '',
+              });
+            } else {
+              const last = groupedMoves[groupedMoves.length - 1];
+              groupedMoves[groupedMoves.length - 1] = {
+                ...last,
+                moveToBlack: san,
+                fen: m.fenAfter,
+              };
+            }
+          }
+        });
+
+        if (groupedMoves.length > 0) {
+          setMoves(groupedMoves);
+        }
+      } catch (err) {
+        console.error('Error loading move history:', err);
+      }
+    };
+
+    if (matchId) {
+      fetchHistory();
+    }
+  }, [matchId]);
+
   const addMove = (move) => {
     // Your existing move adding logic
     if(move.piece !== move.piece.toLowerCase()) {

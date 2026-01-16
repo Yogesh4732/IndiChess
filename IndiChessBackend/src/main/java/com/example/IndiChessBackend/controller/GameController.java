@@ -194,16 +194,14 @@ public class GameController {
         }
     }
 
-    // REST endpoint to get move history (optional)
+    // REST endpoint to get move history
     @GetMapping("/{matchId}/moves")
-    public ResponseEntity<Map<String, Object>> getMoveHistory(@PathVariable Long matchId) {
+    public ResponseEntity<java.util.List<MoveHistoryDTO>> getMoveHistory(@PathVariable Long matchId) {
         try {
-            Map<String, Object> response = new HashMap<>();
-            response.put("matchId", matchId);
-            response.put("moves", new ArrayList<>()); // Return empty list for now
-            response.put("count", 0);
-            return ResponseEntity.ok(response);
+            java.util.List<MoveHistoryDTO> history = gameService.getMoveHistory(matchId);
+            return ResponseEntity.ok(history);
         } catch (Exception e) {
+            System.err.println("Error fetching move history: " + e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

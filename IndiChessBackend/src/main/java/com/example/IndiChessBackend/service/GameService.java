@@ -289,11 +289,19 @@ public class GameService {
             return toCol == 6 ? "O-O" : "O-O-O"; // Kingside or Queenside
         }
 
-        String pieceSymbol = piece.toUpperCase();
+        // Pawn moves have special notation: captures include the file of origin (e.g. hxg5),
+        // quiet pawn moves are just the destination square (e.g. e4).
         if ("p".equalsIgnoreCase(piece)) {
-            pieceSymbol = "";
+            boolean isCapture = move.getCapturedPiece() != null && !move.getCapturedPiece().isEmpty();
+            if (isCapture) {
+                return fromSquare.substring(0, 1) + "x" + toSquare; // e.g. "h" + "xg5" -> "hxg5"
+            } else {
+                return toSquare; // e.g. "e4"
+            }
         }
 
+        // For pieces, use the piece letter (uppercase), optional 'x', and destination square.
+        String pieceSymbol = piece.toUpperCase();
         String capture = move.getCapturedPiece() != null && !move.getCapturedPiece().isEmpty() ? "x" : "";
 
         return pieceSymbol + capture + toSquare;
@@ -315,6 +323,7 @@ public class GameService {
                 // Create and persist Move entity in the moves table
                 try {
                     String uci = createUCI(moveRequest);
+                    String san = createMoveNotation(moveRequest);
 
                     Move moveEntity = new Move();
                     moveEntity.setMatch(match);
@@ -330,8 +339,8 @@ public class GameService {
                     }
 
                     moveEntity.setUci(uci.isEmpty() ? null : uci);
-                    // SAN is optional; can be derived later if needed
-                    moveEntity.setSan(null);
+                    // Store SAN (algebraic notation) for history/analysis
+                    moveEntity.setSan(san);
                     moveEntity.setFenBefore(moveRequest.getFenBefore());
                     moveEntity.setFenAfter(moveRequest.getFenAfter());
                     moveEntity.setCreatedAt(LocalDateTime.now());
@@ -349,6 +358,23 @@ public class GameService {
             e.printStackTrace();
             // Don't throw - we want to continue even if DB update fails
         }
+    }
+
+    public List<MoveHistoryDTO> getMoveHistory(Long matchId) {
+        List<Move> moves = moveRepo.findByMatch_IdOrderByPlyAsc(matchId);
+        List<MoveHistoryDTO> history = new ArrayList<>();
+        for (Move m : moves) {
+            MoveHistoryDTO dto = new MoveHistoryDTO();
+            dto.setPly(m.getPly());
+            dto.setMoveNumber(m.getMoveNumber());
+            dto.setColor(m.getColor());
+            dto.setSan(m.getSan());
+            dto.setFenBefore(m.getFenBefore());
+            dto.setFenAfter(m.getFenAfter());
+            dto.setCreatedAt(m.getCreatedAt());
+            history.add(dto);
+        }
+        return history;
     }
 
     private String createUCI(MoveRequest move) {

@@ -285,11 +285,11 @@ const applyOpponentMove = (moveData) => {
     const fenAfter = moveData.fenAfter || convertBoardToFEN(board);
     const fenBefore = moveData.fenBefore || convertBoardToFEN(board);
     
-    // Add to move history
+    // Add to move history (use algebraic moveNotation so captures/checks are visible)
     const moveToAdd = {
-        piece,
-        moveFrom: `${String.fromCharCode('a'.charCodeAt(0) + from.col)}${8-from.row}`,
-        moveTo: `${String.fromCharCode('a'.charCodeAt(0) + to.col)}${8-to.row}`,
+      piece,
+      moveFrom: `${String.fromCharCode('a'.charCodeAt(0) + from.col)}${8-from.row}`,
+      moveTo: moveNotation,
         sqnumfrom: 8-from.row,
         sqnumto: 8-to.row,
         tc: to.col,
