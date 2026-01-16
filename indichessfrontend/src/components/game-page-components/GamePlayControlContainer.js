@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import Analysis from "./Analysis";
 import NewGame from "./NewGame";
-import GamesPlayed from "./GamesPlayed"
+import GamesPlayed from "./GamesPlayed";
 import Players from "./Players";
+import Chat from "./Chat";
 import "../component-styles/GamePlayControlContainer.css";
 
-const GamePlayControlContainer = ({moves}) => {
+const GamePlayControlContainer = ({ moves, matchId, stompClient, isConnected, playerColor, username }) => {
   const [activeTab, setActiveTab] = useState("Analysis");
 
   // Handle tab selection
@@ -41,6 +42,12 @@ const GamePlayControlContainer = ({moves}) => {
         >
           Players
         </div>
+        <div
+          className={`tab ${activeTab === "Chat" ? "active" : ""}`}
+          onClick={() => handleTabClick("Chat")}
+        >
+          Chat
+        </div>
       </div>
 
       {/* Content Section based on active tab */}
@@ -49,6 +56,15 @@ const GamePlayControlContainer = ({moves}) => {
         {activeTab === "NewGame" && <NewGame />}
         {activeTab === "Games" && <GamesPlayed />}
         {activeTab === "Players" && <Players />}
+        {activeTab === "Chat" && (
+          <Chat
+            matchId={matchId}
+            stompClient={stompClient}
+            isConnected={isConnected}
+            playerColor={playerColor}
+            username={username}
+          />
+        )}
       </div>
     </div>
   );

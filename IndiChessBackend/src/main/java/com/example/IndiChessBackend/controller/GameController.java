@@ -1,6 +1,7 @@
 package com.example.IndiChessBackend.controller;
 import com.example.IndiChessBackend.model.DTO.*;
 import com.example.IndiChessBackend.service.GameService;
+import com.example.IndiChessBackend.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class GameController {
 
     private final GameService gameService;
+    private final ChatService chatService;
 
     // REST endpoint to get game details
     @GetMapping("/{matchId}")
@@ -143,27 +145,35 @@ public class GameController {
         }
     }
 
-    // WebSocket endpoint for chat messages
+    // WebSocket endpoint for chat messages (now persisted)
     @MessageMapping("/game/{matchId}/chat")
     @SendTo("/topic/chat/{matchId}")
-    public Map<String, Object> handleChatMessage(@DestinationVariable Long matchId,
-                                                 @Payload Map<String, String> chatMessage,
-                                                 Principal principal) {
+    public ChatMessageDTO handleChatMessage(@DestinationVariable Long matchId,
+                                            @Payload Map<String, String> chatMessage,
+                                            Principal principal) {
         try {
             System.out.println("Chat message from " + principal.getName() + " in game " + matchId);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("type", "CHAT_MESSAGE");
-            response.put("from", principal.getName());
-            response.put("message", chatMessage.get("message"));
-            response.put("matchId", matchId);
-            response.put("timestamp", System.currentTimeMillis());
-            return response;
+            String messageText = chatMessage.get("message");
+            return chatService.saveChatMessage(matchId, principal.getName(), messageText);
         } catch (Exception e) {
             System.err.println("Error handling chat message: " + e.getMessage());
-            Map<String, Object> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return error;
+            // For WebSocket errors, you can either throw or return a DTO with error info.
+            ChatMessageDTO errorDto = new ChatMessageDTO();
+            errorDto.setType("CHAT_ERROR");
+            errorDto.setMessage("Error: " + e.getMessage());
+            return errorDto;
+        }
+    }
+
+    // REST endpoint to fetch chat history for a match
+    @GetMapping("/{matchId}/chat")
+    public ResponseEntity<java.util.List<ChatMessageDTO>> getChatHistory(@PathVariable Long matchId) {
+        try {
+            java.util.List<ChatMessageDTO> history = chatService.getChatHistory(matchId);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            System.err.println("Error fetching chat history: " + e.getMessage());
+            return ResponseEntity.notFound().build();
         }
     }
 

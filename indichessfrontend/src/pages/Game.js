@@ -113,11 +113,6 @@ const Game = () => {
           // This will be handled in GameContainer
         });
         
-        // Subscribe to chat messages
-        client.subscribe(`/topic/chat/${matchId}`, (message) => {
-          console.log("Chat message:", message.body);
-        });
-
         // Notify server that player has joined
         client.publish({
           destination: `/app/game/${matchId}/join`,
@@ -199,6 +194,7 @@ const Game = () => {
           isConnected={isConnected}
           playerColor={playerColor}
           initialGameData={gameData}
+          username={username}
         />
       </div>
     </div>
