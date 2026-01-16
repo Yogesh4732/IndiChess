@@ -90,6 +90,8 @@ public class GameController {
             response.put("player", principal.getName());
             response.put("matchId", matchId);
             response.put("timestamp", System.currentTimeMillis());
+            response.put("status", "GAME_OVER");
+            response.put("result", principal.getName() + " resigned");
             return response;
         } catch (Exception e) {
             System.err.println("Error handling resignation: " + e.getMessage());
@@ -135,7 +137,8 @@ public class GameController {
             response.put("player", principal.getName());
             response.put("matchId", matchId);
             response.put("timestamp", System.currentTimeMillis());
-            response.put("status", "DRAW");
+            response.put("status", "GAME_OVER");
+            response.put("result", "Draw agreed");
             return response;
         } catch (Exception e) {
             System.err.println("Error handling draw accept: " + e.getMessage());

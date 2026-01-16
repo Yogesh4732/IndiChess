@@ -9,6 +9,7 @@ const GameContainer = ({ matchId, stompClient, isConnected, playerColor, initial
   const [opponentMove, setOpponentMove] = useState(null); // To trigger board updates
   const moveSubscriptionRef = useRef(null);
   const gameStateSubscriptionRef = useRef(null);
+  const drawOfferSubscriptionRef = useRef(null);
 
   // Time control: 10 minutes per side for RAPID games
   const isRapid = initialGameData?.gameType === 'RAPID';
@@ -59,7 +60,7 @@ const GameContainer = ({ matchId, stompClient, isConnected, playerColor, initial
         }
       });
 
-      // Subscribe to game state updates
+      // Subscribe to game state updates (resign, draw, etc.)
       gameStateSubscriptionRef.current = stompClient.subscribe(`/topic/game-state/${matchId}`, (message) => {
         try {
           const state = JSON.parse(message.body);
@@ -82,6 +83,36 @@ const GameContainer = ({ matchId, stompClient, isConnected, playerColor, initial
           console.error("Error parsing game state:", error);
         }
       });
+
+      // Subscribe to per-user draw offer queue
+      drawOfferSubscriptionRef.current = stompClient.subscribe(`/user/queue/draw-offers`, (message) => {
+        try {
+          const payload = JSON.parse(message.body);
+          console.log("Draw offer message:", payload);
+
+          if (payload.type === "DRAW_OFFER_SENT") {
+            // Confirmation for the player who offered the draw
+            alert("Draw offer sent to your opponent.");
+          } else if (payload.type === "DRAW_OFFER") {
+            // Incoming draw offer from opponent
+            const from = payload.from || "Your opponent";
+            const accept = window.confirm(`${from} offers a draw. Do you accept?`);
+            if (accept) {
+              // Send draw acceptance directly
+              stompClient.publish({
+                destination: `/app/game/${matchId}/draw/accept`,
+                body: JSON.stringify({
+                  playerColor: playerColor,
+                  timestamp: new Date().toISOString(),
+                  matchId: matchId
+                })
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Error handling draw-offer message:", err);
+        }
+      });
     } catch (e) {
       console.error("Failed to subscribe to STOMP topics:", e);
     }
@@ -93,8 +124,11 @@ const GameContainer = ({ matchId, stompClient, isConnected, playerColor, initial
       if (gameStateSubscriptionRef.current) {
         gameStateSubscriptionRef.current.unsubscribe();
       }
+      if (drawOfferSubscriptionRef.current) {
+        drawOfferSubscriptionRef.current.unsubscribe();
+      }
     };
-  }, [stompClient, isConnected, matchId]);
+  }, [stompClient, isConnected, matchId, playerColor]);
 
   // Timer effect: decrement clocks based on whose turn it is (per client view)
   useEffect(() => {

@@ -486,14 +486,6 @@ public class GameService {
             } catch (Exception e) {
                 System.err.println("⚠️ Failed to update match status on resignation: " + e.getMessage());
             }
-
-            // Notify players
-            GameStatusDTO statusDTO = new GameStatusDTO();
-            statusDTO.setMatchId(matchId);
-            statusDTO.setStatus("RESIGNED");
-            statusDTO.setPlayerColor(getPlayerColor(matchId, username));
-
-            messagingTemplate.convertAndSend("/topic/game-state/" + matchId, statusDTO);
         }
     }
 
